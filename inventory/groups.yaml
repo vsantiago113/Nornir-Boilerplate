@@ -1,0 +1,7 @@
+---
+switch:
+  data:
+    platform: cisco_ios
+router:
+  data:
+    platform: cisco_ios

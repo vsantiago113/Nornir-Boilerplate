@@ -1,0 +1,13 @@
+hostname {{ host }}
+{% if host.name == "SW1" %}
+interface GigabitEthernet0/0
+cdp enable
+interface GigabitEthernet0/1
+cdp enable
+{% elif host.name == "SW2" %}
+interface GigabitEthernet0/0
+cdp enable
+{% elif host.name == "SW3" %}
+interface GigabitEthernet0/0
+cdp enable
+{% endif %}

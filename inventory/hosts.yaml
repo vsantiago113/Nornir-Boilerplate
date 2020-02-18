@@ -1,0 +1,16 @@
+---
+SW1:
+  hostname: 192.168.1.201
+  platform: cisco_ios
+  groups:
+    - switch
+SW2:
+  hostname: 192.168.1.202
+  platform: cisco_ios
+  groups:
+    - switch
+SW3:
+  hostname: 192.168.1.203
+  platform: cisco_ios
+  groups:
+    - switch
