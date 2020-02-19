@@ -1,12 +1,15 @@
 import logging
+import os
 from nornir import InitNornir
 from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config
 from nornir.plugins.tasks import text
 from nornir.plugins.functions.text import print_result, print_title
 from nornir.core.filter import F
 
+os.mkdir('logs') if not os.path.isdir('logs') else None
+
 nr = InitNornir(config_file='config.yaml', dry_run=False,
-                logging={'enabled': True, 'level': 'debug', 'to_console': True, 'file': 'nornir.log',
+                logging={'enabled': True, 'level': 'debug', 'to_console': True, 'file': 'logs/nornir.log',
                          'format': '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s() - %(message)s'})
 
 
@@ -38,7 +41,7 @@ switches = nr.filter(F(groups__contains='switch'))
 multi_result = switches.run(task=basic_configuration)
 print_result(multi_result)
 
-with open('extended_nornir.log', 'w') as f:
+with open('logs/extended_nornir.log', 'w') as f:
     for host, result, in multi_result.items():
         if result.failed:
             f.write(f' Name: {host}, IP Address: {result[0].host.hostname} - FAILED! '.center(80, '*') + '\n')
