@@ -3,8 +3,7 @@ import os
 from nornir import InitNornir
 from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config
 from nornir.plugins.tasks import text
-from nornir.plugins.functions.text import print_result, print_title
-from nornir.core.filter import F
+from nornir.plugins.functions.text import print_title
 
 os.mkdir('logs') if not os.path.isdir('logs') else None
 
@@ -36,17 +35,23 @@ def basic_configuration(task):
              severity_level=logging.INFO)
 
 
+def custom_filter(host):
+    if 'switch' in host.groups and (host.name == 'SW2' or host.name == 'SW3'):
+        return True
+    else:
+        return False
+
+
 print_title('Playbook to setup basic configs')
-switches = nr.filter(F(groups__contains='switch'))
-multi_result = switches.run(task=basic_configuration)
-print_result(multi_result)
+hosts = nr.filter(filter_func=custom_filter)
+multi_result = hosts.run(task=basic_configuration)
 
 with open('logs/extended_nornir.log', 'w') as f:
-    for host, result, in multi_result.items():
+    for device, result, in multi_result.items():
         if result.failed:
-            f.write(f' Name: {host}, IP Address: {result[0].host.hostname} - FAILED! '.center(80, '*') + '\n')
+            f.write(f' Name: {device}, IP Address: {result[0].host.hostname} - FAILED! '.center(80, '*') + '\n')
         else:
-            f.write(f' Name: {host}, IP Address: {result[0].host.hostname} - SUCCESS! '.center(80, '*') + '\n')
+            f.write(f' Name: {device}, IP Address: {result[0].host.hostname} - SUCCESS! '.center(80, '*') + '\n')
             for output in result[2:]:
                 if output.result:
                     f.write(str(output) + '\n')
