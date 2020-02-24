@@ -1,7 +1,7 @@
 import logging
 import os
 from nornir import InitNornir
-from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config
+from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command
 from nornir.plugins.tasks import text
 from nornir.plugins.functions.text import print_title
 
@@ -13,6 +13,13 @@ nr = InitNornir(config_file='config.yaml', dry_run=False,
 
 
 def basic_configuration(task):
+    # Send a command
+    output = task.run(task=netmiko_send_command,
+                      command_string='show run | include hostname',
+                      severity_level=logging.INFO)
+    # Print the output of the task
+    print(output[0].result)
+
     # Transform inventory data to configuration via a template file
     r = task.run(task=text.template_file,
                  name='Base Configuration',
@@ -36,7 +43,7 @@ def basic_configuration(task):
 
 
 def custom_filter(host):
-    if 'switch' in host.groups and (host.name == 'SW2' or host.name == 'SW3'):
+    if 'switch' in host.groups and (host.name == 'SW2'):
         return True
     else:
         return False
@@ -52,7 +59,7 @@ with open('logs/extended_nornir.log', 'w') as f:
             f.write(f' Name: {device}, IP Address: {result[0].host.hostname} - FAILED! '.center(80, '*') + '\n')
         else:
             f.write(f' Name: {device}, IP Address: {result[0].host.hostname} - SUCCESS! '.center(80, '*') + '\n')
-            for output in result[2:]:
-                if output.result:
-                    f.write(str(output) + '\n')
+            for stdout in result[2:]:
+                if stdout.result:
+                    f.write(str(stdout) + '\n')
         f.write(f'{"~" * 80}\n')
