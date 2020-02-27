@@ -39,8 +39,8 @@ def basic_configuration(task):
     # Transform inventory data to configuration via a template file
     r = task.run(task=text.template_file,
                  name='Base Configuration',
-                 template='base.j2',
-                 path=f'templates/{task.host.platform}',
+                 template='ios_configs.j2',
+                 path='templates',
                  severity_level=logging.DEBUG)
     configs = r.result.splitlines()
 
