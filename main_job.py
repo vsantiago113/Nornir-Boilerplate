@@ -1,5 +1,6 @@
 import logging
 import os
+import yaml
 from nornir import InitNornir
 from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command
 from nornir.plugins.tasks import text
@@ -10,9 +11,19 @@ os.mkdir('logs') if not os.path.isdir('logs') else None
 if os.path.isfile('inventory/failed_hosts.yaml'):
     inventory = 'inventory/failed_hosts.yaml'
 else:
-    'inventory/hosts.yaml'
+    inventory = 'inventory/hosts.yaml'
 
-nr = InitNornir(config_file='config.yaml', dry_run=False,
+
+def adapt_host_data(host):
+    host.username = os.environ.get('USERNAME')
+    host.password = os.environ.get('PASSWORD')
+
+
+nr = InitNornir(core={"num_workers": 20},
+                inventory={'transform_function': adapt_host_data,
+                           'options': {'host_file': inventory,
+                                       'group_file': 'inventory/groups.yaml'}},
+                dry_run=False,
                 logging={'enabled': True, 'level': 'debug', 'to_console': True, 'file': 'logs/nornir.log',
                          'format': '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s() - %(message)s'})
 
@@ -31,11 +42,12 @@ def basic_configuration(task):
                  template='base.j2',
                  path=f'templates/{task.host.platform}',
                  severity_level=logging.DEBUG)
+    configs = r.result.splitlines()
 
     # Deploy that configuration to the device using Netmiko
     task.run(task=netmiko_send_config,
              name='Loading Configuration on the Device',
-             config_commands=r.result.splitlines(),
+             config_commands=configs,
              severity_level=logging.INFO)
 
     # Save that configuration to the device using Netmiko
