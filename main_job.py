@@ -16,10 +16,8 @@ else:
 
 
 def adapt_host_data(host):
-    # host.username = os.environ.get('USERNAME')
-    # host.password = os.environ.get('PASSWORD')
-    host.username = 'admin'
-    host.password = 'Cisco123'
+    host.username = os.environ.get('USERNAME')
+    host.password = os.environ.get('PASSWORD')
 
 
 nr = InitNornir(core={"num_workers": 7},
