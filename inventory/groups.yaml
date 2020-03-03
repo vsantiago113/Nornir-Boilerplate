@@ -1,7 +1,10 @@
 ---
 switch:
   data:
-    platform: cisco_ios
+    platform: ios
 router:
   data:
-    platform: cisco_ios
+    platform: ios
+firewall:
+  data:
+    platform: ios
