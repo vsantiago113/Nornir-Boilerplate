@@ -62,9 +62,8 @@ def grouped_tasks(task):
         device_log_file.write(f'**** PLAY on Device: (Name: {task.host.name}, '
                               f'IP Address: {task.host.hostname}) - SUCCESS! '.center(80, '*') + '\n')
         for task_index, device_task in enumerate(task.results, start=1):
-            if device_task.result:
-                device_log_file.write(f'---- TASK-{task_index}: [{device_task.name}] '.ljust(80, '-') + '\n')
-                device_log_file.write(str(device_task.result) + '\n')
+            device_log_file.write(f'---- TASK-{task_index}: [{device_task.name}] '.ljust(80, '-') + '\n')
+            device_log_file.write(str(device_task.result) + '\n')
 
 
 def custom_filter(host):
@@ -86,9 +85,8 @@ with open('logs/extended_nornir.log', 'a' if os.path.isfile('logs/extended_norni
             f.write(f'**** PLAY on Device: (Name: {device_name}, '
                     f'IP Address: {result[0].host.hostname}) - SUCCESS! '.center(80, '*') + '\n')
             for index, chore in enumerate(result, start=0):
-                if chore.result:
-                    f.write(f'---- TASK-{index}: [{chore.name}] '.ljust(80, '-') + '\n')
-                    f.write(str(chore.result) + '\n')
+                f.write(f'---- TASK-{index}: [{chore.name}] '.ljust(80, '-') + '\n')
+                f.write(str(chore.result) + '\n')
             f.write(f'{"~" * 80}\n')
         else:
             failed_host = result[0].host
