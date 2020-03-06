@@ -5,7 +5,7 @@ devices = {'count': int(),
            'items': dict()
            }
 
-print(f'---- Number of devices found in logs: {len(os.listdir("./logs/devices"))}'.ljust(80, '-'))
+print(f'---- Number of devices found in logs: {len(os.listdir("./logs/devices"))} '.ljust(80, '-'))
 
 for i in sorted(os.listdir('./logs/devices')):
     failure = False

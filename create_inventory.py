@@ -1,7 +1,9 @@
 import yaml
 
 # Copy two columns of a csv file and paste them in the string variable.
-string = """"""
+string = """SW1 192.168.1.201
+SW2 192.168.1.202
+SW3 192.168.1.203"""
 
 inv = dict()
 with open('inventory/hosts.yaml', 'w') as f:

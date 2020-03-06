@@ -2,7 +2,7 @@ import logging
 import os
 import yaml
 from nornir import InitNornir
-from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command
+from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command, tcp_ping
 from nornir.plugins.tasks import text
 from nornir.plugins.functions.text import print_title, print_result
 from nornir.core.exceptions import NornirSubTaskError, ConnectionException
