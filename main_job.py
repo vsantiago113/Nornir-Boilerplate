@@ -5,6 +5,7 @@ from nornir import InitNornir
 from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command
 from nornir.plugins.tasks import text
 from nornir.plugins.functions.text import print_title, print_result
+from nornir.core.exceptions import NornirSubTaskError, ConnectionException
 
 os.mkdir('logs') if not os.path.isdir('logs') else None
 os.mkdir('logs/devices') if not os.path.isdir('logs/devices') else None
@@ -30,40 +31,58 @@ nr = InitNornir(core={"num_workers": 7},
 
 
 def grouped_tasks(task):
-    # Send a command
-    output = task.run(task=netmiko_send_command,
-                      command_string='show run | include hostname',
-                      severity_level=logging.INFO)
-    # Print the output of the task
-    print(output[0].result)
+    output = task.run(task=tcp_ping,
+                      name='Checking connectivity...',
+                      ports=[22])  # the ports you are connecting to on the target device as a list.
+    if output[0].result.get(22) is True:
+        try:
+            # <! ENTER YOUR TASKS HERE > -------------------------------------------------------------------------------
 
-    # Transform inventory data to configuration via a template file
-    r = task.run(task=text.template_file,
-                 name='Loading configs from Jinja Template',
-                 template='ios_configs.j2',
-                 path='templates',
-                 severity_level=logging.DEBUG)
-    configs = r.result.splitlines()
+            # Send a command
+            output = task.run(task=netmiko_send_command,
+                              command_string='show run | include hostname',
+                              severity_level=logging.INFO)
+            # Print the output of the task
+            print(output[0].result)
 
-    # Deploy that configuration to the device using Netmiko
-    task.run(task=netmiko_send_config,
-             name='Loading Configuration on the Device',
-             config_commands=configs,
-             severity_level=logging.INFO)
+            # Transform inventory data to configuration via a template file
+            r = task.run(task=text.template_file,
+                         name='Loading configs from Jinja Template',
+                         template='ios_configs.j2',
+                         path='templates',
+                         severity_level=logging.DEBUG)
+            configs = r.result.splitlines()
 
-    # Save that configuration to the device using Netmiko
-    task.run(task=netmiko_save_config,
-             name='Saving Configuration on the Device',
-             cmd='write memory',
-             severity_level=logging.INFO)
+            # Deploy that configuration to the device using Netmiko
+            task.run(task=netmiko_send_config,
+                     name='Loading Configuration on the Device',
+                     config_commands=configs,
+                     severity_level=logging.INFO)
 
-    device_log_filename = f'logs/devices/Name-{task.host.name}_IP-{task.host.hostname}.log'
-    with open(device_log_filename, 'a' if os.path.isfile(device_log_filename) else 'w') as device_log_file:
-        device_log_file.write(f'**** PLAY on Device: (Name: {task.host.name}, '
-                              f'IP Address: {task.host.hostname}) - SUCCESS! '.center(80, '*') + '\n')
-        for task_index, device_task in enumerate(task.results, start=1):
-            device_log_file.write(f'---- TASK-{task_index}: [{device_task.name}] '.ljust(80, '-') + '\n')
-            device_log_file.write(str(device_task.result) + '\n')
+            # Save that configuration to the device using Netmiko
+            task.run(task=netmiko_save_config,
+                     name='Saving Configuration on the Device',
+                     cmd='write memory',
+                     severity_level=logging.INFO)
+
+            # <! DO NOT CHANGE ANYTHING BELOW THIS LINE > --------------------------------------------------------------
+        except (NornirSubTaskError, ConnectionException) as e:
+            device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}~&ERROR.log'
+            with open(device_log_filename, 'w') as device_log_file:
+                for i in e.result:
+                    device_log_file.write(str(i) + '\n')
+        else:
+            device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}.log'
+            with open(device_log_filename, 'a' if os.path.isfile(device_log_filename) else 'w') as device_log_file:
+                device_log_file.write(f'**** PLAY on Device: (Name: {task.host.name}, '
+                                      f'IP Address: {task.host.hostname}) - SUCCESS! '.center(80, '*') + '\n')
+                for task_index, device_task in enumerate(task.results, start=1):
+                    device_log_file.write(f'---- TASK-{task_index}: [{device_task.name}] '.ljust(80, '-') + '\n')
+                    device_log_file.write(str(device_task.result) + '\n')
+    else:
+        device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}~&ERROR-(ConnError).log'
+        with open(device_log_filename, 'w') as device_log_file:
+            device_log_file.write('\n** ConnectionError:\n')
 
 
 def custom_filter(host):
