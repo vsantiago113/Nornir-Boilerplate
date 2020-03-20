@@ -17,8 +17,8 @@ else:
 
 
 def adapt_host_data(host):
-    host.username = os.environ.get('USERNAME')
-    host.password = os.environ.get('PASSWORD')
+    host.username = 'admin'
+    host.password = 'Cisco123'
 
 
 nr = InitNornir(core={"num_workers": 7},
@@ -80,6 +80,8 @@ def grouped_tasks(task):
                     device_log_file.write(f'---- TASK-{task_index}: [{device_task.name}] '.ljust(80, '-') + '\n')
                     device_log_file.write(str(device_task.result) + '\n')
     else:
+        task.results[0].failed = True
+        output[0].result['message'] = 'Unable to ping device on port 22.'
         device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}~&ERROR-(ConnError).log'
         with open(device_log_filename, 'w') as device_log_file:
             device_log_file.write('\n** ConnectionError:\n')
@@ -104,6 +106,8 @@ with open('logs/extended_nornir.log', 'a' if os.path.isfile('logs/extended_norni
             f.write(f'**** PLAY on Device: (Name: {device_name}, '
                     f'IP Address: {result[0].host.hostname}) - SUCCESS! '.center(80, '*') + '\n')
             for index, chore in enumerate(result, start=0):
+                if index == 0:  # Skip if index EQUAL 0
+                    continue
                 f.write(f'---- TASK-{index}: [{chore.name}] '.ljust(80, '-') + '\n')
                 f.write(str(chore.result) + '\n')
             f.write(f'{"~" * 80}\n')
