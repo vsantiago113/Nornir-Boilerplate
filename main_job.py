@@ -1,11 +1,13 @@
 import logging
 import os
 import yaml
+from tqdm import tqdm
 from nornir import InitNornir
 from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command, tcp_ping
 from nornir.plugins.tasks import text
 from nornir.plugins.functions.text import print_title, print_result
 from nornir.core.exceptions import NornirSubTaskError, ConnectionException
+
 
 os.mkdir('logs') if not os.path.isdir('logs') else None
 os.mkdir('logs/devices') if not os.path.isdir('logs/devices') else None
@@ -16,21 +18,27 @@ else:
     inventory = 'inventory/hosts.yaml'
 
 
-def adapt_host_data(host):
-    host.username = 'admin'
-    host.password = 'Cisco123'
+def adapt_host_data(host, username, password):
+    host.username = username
+    host.password = password
 
+
+options = {
+    'username': 'admin',
+    'password': 'Cisco123'
+}
 
 nr = InitNornir(core={"num_workers": 7},
                 inventory={'transform_function': adapt_host_data,
+                           'transform_function_options': options,
                            'options': {'host_file': inventory,
                                        'group_file': 'inventory/groups.yaml'}},
                 dry_run=False,
-                logging={'enabled': True, 'level': 'debug', 'to_console': True, 'file': 'logs/nornir.log',
+                logging={'enabled': True, 'level': 'debug', 'to_console': False, 'file': 'logs/nornir.log',
                          'format': '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s() - %(message)s'})
 
 
-def grouped_tasks(task):
+def grouped_tasks(task, progressbar):
     output = task.run(task=tcp_ping,
                       name='Checking connectivity...',
                       ports=[22])  # the ports you are connecting to on the target device as a list.
@@ -67,11 +75,15 @@ def grouped_tasks(task):
 
             # <! DO NOT CHANGE ANYTHING BELOW THIS LINE > --------------------------------------------------------------
         except (NornirSubTaskError, ConnectionException) as e:
+            progressbar.update()
             device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}~&ERROR.log'
             with open(device_log_filename, 'w') as device_log_file:
                 for i in e.result:
                     device_log_file.write(str(i) + '\n')
+
+            tqdm.write(f"{task.host}: Completed with Error!")
         else:
+            progressbar.update()
             device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}.log'
             with open(device_log_filename, 'a' if os.path.isfile(device_log_filename) else 'w') as device_log_file:
                 device_log_file.write(f'**** PLAY on Device: (Name: {task.host.name}, '
@@ -79,16 +91,21 @@ def grouped_tasks(task):
                 for task_index, device_task in enumerate(task.results, start=1):
                     device_log_file.write(f'---- TASK-{task_index}: [{device_task.name}] '.ljust(80, '-') + '\n')
                     device_log_file.write(str(device_task.result) + '\n')
+
+            tqdm.write(f"{task.host}: Completed Successfully!")
     else:
+        progressbar.update()
         task.results[0].failed = True
         output[0].result['message'] = 'Unable to ping device on port 22.'
         device_log_filename = f'logs/devices/Name-{task.host.name}~&IP-{task.host.hostname}~&ERROR-(ConnError).log'
         with open(device_log_filename, 'w') as device_log_file:
             device_log_file.write('\n** ConnectionError:\n')
 
+        tqdm.write(f"{task.host}: Completed with Error!")
+
 
 def custom_filter(host):
-    if 'switch' in host.groups and (host.name == 'SW2'):
+    if 'switch' in host.groups:
         return True
     else:
         return False
@@ -96,7 +113,9 @@ def custom_filter(host):
 
 print_title('Playbook to setup basic configs')
 hosts = nr.filter(filter_func=custom_filter)
-multi_result = hosts.run(task=grouped_tasks)
+with tqdm(total=len(nr.inventory.hosts), desc="Running tasks...",) as progress_bar:
+    multi_result = hosts.run(task=grouped_tasks, progressbar=progress_bar)
+
 print_result(multi_result)
 
 failed_hosts_inv = dict()
