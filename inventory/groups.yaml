@@ -7,4 +7,4 @@ router:
     platform: ios
 firewall:
   data:
-    platform: ios
+    platform: cisco_asa

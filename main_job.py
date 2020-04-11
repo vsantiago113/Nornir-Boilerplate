@@ -7,6 +7,8 @@ from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_co
 from nornir.plugins.tasks import text
 from nornir.plugins.functions.text import print_title, print_result
 from nornir.core.exceptions import NornirSubTaskError, ConnectionException
+from nornir.core.inventory import ConnectionOptions
+from nornir.plugins.tasks.data import echo_data
 
 
 os.mkdir('logs') if not os.path.isdir('logs') else None
@@ -21,6 +23,9 @@ else:
 def adapt_host_data(host, username, password):
     host.username = username
     host.password = password
+    host.connection_options['netmiko'] = ConnectionOptions(
+        extras={'secret': password}
+    )
 
 
 options = {
@@ -51,7 +56,12 @@ def grouped_tasks(task, progressbar):
                               command_string='show run | include hostname',
                               severity_level=logging.INFO)
             # Print the output of the task
-            print(output[0].result)
+            # print(output[0].result)
+
+            task.run(task=echo_data,
+                     name='Echo the data from the last task.',
+                     command='show run | include hostname',
+                     output=output[0].result)
 
             # Transform inventory data to configuration via a template file
             r = task.run(task=text.template_file,
