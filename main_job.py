@@ -1,6 +1,7 @@
 import logging
 import os
 import yaml
+import getpass
 from tqdm import tqdm
 from nornir import InitNornir
 from nornir.plugins.tasks.networking import netmiko_send_config, netmiko_save_config, netmiko_send_command, tcp_ping
@@ -29,8 +30,8 @@ def adapt_host_data(host, username, password):
 
 
 options = {
-    'username': 'admin',
-    'password': 'Cisco123'
+    'username': input('Enter username: '),
+    'password': getpass.getpass()
 }
 
 nr = InitNornir(core={"num_workers": 7},
