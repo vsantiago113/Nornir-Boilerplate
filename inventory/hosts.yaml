@@ -13,3 +13,8 @@ SW3:
   - switch
   hostname: 192.168.1.203
   platform: ios
+RT1-Corp:
+  groups:
+    - router
+  hostname: 192.168.58.100
+  platform: ios
